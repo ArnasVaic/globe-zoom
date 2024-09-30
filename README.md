@@ -1,6 +1,6 @@
 # Globe zoom
 
-## Contributors
+## Collaborators
 
 - Arnas Vaicekauskas
 - Domantas Keturakis
