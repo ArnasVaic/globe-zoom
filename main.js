@@ -3,6 +3,7 @@ import mobiusZoomVertex from "./public/shaders/mobius-zoom.vert"
 import mobiusZoomFragment from "./public/shaders/mobius-zoom.frag"
 
 import earthTexture from "./public/textures/earth.jpg"
+import { uniform, uniforms } from "three/webgpu";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -79,7 +80,6 @@ function onPointerMove( event ) {
 
 	pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
 }
 
 function onClick( event ) {
@@ -90,6 +90,11 @@ function onClick( event ) {
     // on plane there will be only one hit
     let hit = hits[0]
     let ray = raycaster.ray.clone()
-    console.log(ray.direction.multiplyScalar(hit.distance).add(ray.origin))
+    let hitPosition = ray.direction.multiplyScalar(hit.distance).add(ray.origin);
+    // plane hit coords are in range [-0.5]
+    let hitPlaneLocalCoords = hitPosition.multiply( new THREE.Vector3(1 / 6, 1 / 3, 0));
+    planeMaterial.uniforms.uPlaneHitCoord = new THREE.Uniform(
+      hitPlaneLocalCoords
+    );
   }
 }
