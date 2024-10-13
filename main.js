@@ -2,7 +2,7 @@ import * as THREE from "three";
 import mobiusZoomVertex from "./public/shaders/mobius-zoom.vert"
 import mobiusZoomFragment from "./public/shaders/mobius-zoom.frag"
 
-import earthTexture from "./public/textures/earth.jpg"
+import earthTexture from "/textures/earth.jpg"
 import { uniform, uniforms } from "three/webgpu";
 
 const scene = new THREE.Scene();
@@ -25,11 +25,12 @@ const ambientLight = new THREE.AmbientLight(0x404040);
 
 window.addEventListener( 'pointermove', onPointerMove );
 window.addEventListener('click', onClick);
+window.addEventListener("resize", OnResize);
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio)
 renderer.setAnimationLoop(render)
-
 
 document.body.appendChild(renderer.domElement);
 
@@ -48,8 +49,10 @@ const planeMaterial = new THREE.ShaderMaterial({
 });
 
 planeMaterial.uniforms.uTexture = { value: new THREE.TextureLoader().load(earthTexture) }
+planeMaterial.uniforms.uResolution = new THREE.Uniform(new THREE.Vector2(window.innerWidth, window.innerHeight))
 
 const plane = new THREE.Mesh(planeGeometry,planeMaterial);
+
 
 plane.position.x = 0
 
@@ -91,10 +94,19 @@ function onClick( event ) {
     let hit = hits[0]
     let ray = raycaster.ray.clone()
     let hitPosition = ray.direction.multiplyScalar(hit.distance).add(ray.origin);
-    // plane hit coords are in range [-0.5]
+    // plane hit coords are in range [-0.5; 0.5]
     let hitPlaneLocalCoords = hitPosition.multiply( new THREE.Vector3(1 / 6, 1 / 3, 0));
     planeMaterial.uniforms.uPlaneHitCoord = new THREE.Uniform(
       hitPlaneLocalCoords
     );
   }
+}
+
+function OnResize() {
+  let uResolution = new THREE.Vector2(window.innerWidth, window.innerHeight)
+  uResolution = planeMaterial.uniforms.uResolution = new THREE.Uniform(uResolution);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
 }
