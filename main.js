@@ -48,6 +48,7 @@ const planeMaterial = new THREE.ShaderMaterial({
   fragmentShader: mobiusZoomFragment,
 });
 
+planeMaterial.uniforms.uPlaneHitCoord = new THREE.Uniform(new THREE.Vector2(0, 0));
 planeMaterial.uniforms.uTexture = { value: new THREE.TextureLoader().load(earthTexture) }
 planeMaterial.uniforms.uResolution = new THREE.Uniform(new THREE.Vector2(window.innerWidth, window.innerHeight))
 
@@ -96,9 +97,7 @@ function onClick( event ) {
     let hitPosition = ray.direction.multiplyScalar(hit.distance).add(ray.origin);
     // plane hit coords are in range [-0.5; 0.5]
     let hitPlaneLocalCoords = hitPosition.multiply( new THREE.Vector3(1 / 6, 1 / 3, 0));
-    planeMaterial.uniforms.uPlaneHitCoord = new THREE.Uniform(
-      hitPlaneLocalCoords
-    );
+    planeMaterial.uniforms.uPlaneHitCoord = new THREE.Uniform(hitPlaneLocalCoords);
   }
 }
 
