@@ -5,144 +5,144 @@ import mobiusZoomFragment from "./public/shaders/mobius-zoom.frag"
 import earthTexture from "/textures/earth.jpg"
 import { uniform, uniforms } from "three/webgpu";
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-
+let scene, camera, renderer, sphere;
 const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const clock = new THREE.Clock();
 
-const pointer = new THREE.Vector2();
+let theta = 0;
+let phi = 0;
 
-const light = new THREE.PointLight(0xffffff, 1, 100)
-light.position.x = 1
-light.position.y = 0
-light.position.z = 2;
-const ambientLight = new THREE.AmbientLight(0x404040);
+function init() {
+  // Set up scene, camera, and renderer
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-window.addEventListener( 'pointermove', onPointerMove );
-window.addEventListener('click', onClick);
-window.addEventListener("resize", OnResize);
-window.addEventListener("keydown", onKeyDown);
+  // Load texture
+  const textureLoader = new THREE.TextureLoader();
+  const texture = textureLoader.load(
+    earthTexture
+  );
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio)
-renderer.setAnimationLoop(render)
+  // Create a sphere with custom shader material
+  const geometry = new THREE.SphereGeometry(1, 32, 32);
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      u_time: { value: 0 },
+      u_zoom: { value: 1 },
+      u_texture: { value: texture },
+      u_clickUv: { value: new THREE.Vector2(0.5, 0.5) }, // Start zoom at center by default
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float u_zoom;
+      uniform sampler2D u_texture;
+      uniform vec2 u_clickUv;
+      varying vec2 vUv;
 
-document.body.appendChild(renderer.domElement);
+      void main() {
+        // Calculate continuous UVs with wrapping
+        vec2 uvOffset = (vUv - u_clickUv) * u_zoom;
+        uvOffset = mod(uvOffset + 1.0, 1.0); // Wrap UVs in [0,1]
+        vec2 wrappedUv = uvOffset + u_clickUv;
 
-const sphereGeometry = new THREE.SphereGeometry(1, 32, 16);
-const texture = new THREE.TextureLoader().load("./public/textures/earth.jpg")
-const material = new THREE.MeshPhongMaterial({ map: texture });
+        // Sample texture with wrapped UV coordinates
+        vec4 texColor = texture2D(u_texture, vUv);
+        gl_FragColor = texColor;
+      }`
+  });
+  sphere = new THREE.Mesh(geometry, material);
+  scene.add(sphere);
 
+  camera.position.z = 3;
 
-const cameraPolarAngle = new THREE.Vector2();
-
-camera.position.z = 5;
-
-const planeGeometry = new THREE.PlaneGeometry(6, 3, 10, 10)
-const planeMaterial = new THREE.ShaderMaterial({
-  glslVersion: THREE.GLSL3,
-  vertexShader: mobiusZoomVertex,
-  fragmentShader: mobiusZoomFragment,
-});
-
-planeMaterial.uniforms.uHit = new THREE.Uniform(new THREE.Vector3(0, 0, 0));
-planeMaterial.uniforms.uTexture = { value: new THREE.TextureLoader().load(earthTexture) }
-planeMaterial.uniforms.uResolution = new THREE.Uniform(new THREE.Vector2(window.innerWidth, window.innerHeight))
-
-// const plane = new THREE.Mesh(planeGeometry,planeMaterial);
-
-const sphere = new THREE.Mesh(sphereGeometry, planeMaterial);
-
-const cylinderGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1, 8);
-const cylinder = new THREE.Mesh(cylinderGeometry, material);
-
-scene.add(cylinder);
-scene.add(light);
-scene.add(ambientLight);
-//scene.add(plane)
-scene.add(sphere);
-
-function render() {
-
-  //sphere.rotation.x += 0.01;
-  //sphere.rotation.y += 0.01;
-
-  camera.position.x = 3 * Math.sin(cameraPolarAngle.x) // * Math.cos(cameraPolarAngle.x);
-  camera.position.z = 3 * Math.cos(cameraPolarAngle.x);
-
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-  //light.position.x = 2 * Math.sin(clock.getElapsedTime());
-  //light.position.z = 2 * Math.cos(clock.getElapsedTime());
-
-	// calculate objects intersecting the picking ray
-	//const intersects = raycaster.intersectObjects( plane );
-
-  renderer.render(scene, camera);
+  // Handle window resize
+  window.addEventListener("resize", onWindowResize, false);
+  // Add click event
+  window.addEventListener("click", onSphereClick, false);
+  // Add on key down event
+  window.addEventListener("keydown", onKeyDown);
+  animate();
 }
 
-function onPointerMove( event ) {
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
 
-	// calculate pointer position in normalized device coordinates
-	// (-1 to +1) for both components
+function onSphereClick(event) {
+  // Get mouse position in normalized device coordinates (-1 to +1)
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-	pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+  // Raycast to find intersected point
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObject(sphere);
+
+  if (intersects.length > 0) {
+    const intersect = intersects[0];
+    const uv = intersect.uv; // Get the UV coordinates of the intersected point
+
+    // Update shader uniforms for the click position and zoom
+    const material = sphere.material;
+    material.uniforms.u_clickUv.value.copy(uv);
+    material.uniforms.u_zoom.value = 0.5; // Zoom in on click
+
+    // Reset zoom after a short delay
+  }
 }
 
 function onKeyDown(event) {
   switch (event.key) {
     case "ArrowLeft":
       // Left pressed
-      cameraPolarAngle.x = cameraPolarAngle.x + 0.05;
-      //cameraPolarAngle.x = Math.min(2 * Math.PI - 0.01, cameraPolarAngle.x);
+      phi += 0.05;
       break;
     case "ArrowRight":
       // Right pressed
-      cameraPolarAngle.x = cameraPolarAngle.x - 0.05;
-      //cameraPolarAngle.x = Math.max(0.01, cameraPolarAngle.x);
+      phi -= 0.05;
       break;
     case "ArrowUp":
-      // Up pressed
-      cameraPolarAngle.y = cameraPolarAngle.y + 0.05;
+      // Left pressed
+      theta += 0.05;
       break;
     case "ArrowDown":
-      // Down pressed
-      cameraPolarAngle.y = cameraPolarAngle.y - 0.05;
+      // Right pressed
+      theta -= 0.05;
+      break;
+    case "Escape":
+      const material = sphere.material;
+      material.uniforms.u_zoom.value = 1.0; // Reset zoom
       break;
   }
 }
 
-function onClick( event ) {
-  raycaster.setFromCamera( pointer, camera );
-  const hits = raycaster.intersectObject( sphere );
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  sphere.material.uniforms.u_time.value += delta; // Update time uniform
+  sphere.rotation.x = theta;
+  sphere.rotation.y = phi;
+  renderer.render(scene, camera);
 
-  if(0 != hits.length) {
-    // on plane there will be only one hit
-    let hit = hits[0]
-    let ray = raycaster.ray.clone()
-    let hitPosition = ray.direction.multiplyScalar(hit.distance).add(ray.origin);
-    console.log(hitPosition)
-
-    cylinder.rotation.x = 3.14;
-    cylinder.position.copy(hitPosition.multiplyScalar(2));
-    cylinder.lookAt(new THREE.Vector3(0,0,0))
-
-    planeMaterial.uniforms.uHit = new THREE.Uniform(hitPosition);
-  }
+  // camera.position.x = 3 * Math.sin(angle)
+  // camera.position.z = 3 * Math.cos(angle);
+  //camera.lookAt(new THREE.Vector3(0))
 }
 
-function OnResize() {
-  let uResolution = new THREE.Vector2(window.innerWidth, window.innerHeight)
-  uResolution = planeMaterial.uniforms.uResolution = new THREE.Uniform(uResolution);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-}
+init();
