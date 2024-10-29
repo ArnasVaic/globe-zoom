@@ -26,6 +26,7 @@ const ambientLight = new THREE.AmbientLight(0x404040);
 window.addEventListener( 'pointermove', onPointerMove );
 window.addEventListener('click', onClick);
 window.addEventListener("resize", OnResize);
+window.addEventListener("keydown", onKeyDown);
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -37,7 +38,9 @@ document.body.appendChild(renderer.domElement);
 const sphereGeometry = new THREE.SphereGeometry(1, 32, 16);
 const texture = new THREE.TextureLoader().load("./public/textures/earth.jpg")
 const material = new THREE.MeshPhongMaterial({ map: texture });
-const sphere = new THREE.Mesh(sphereGeometry, material);
+
+
+const cameraPolarAngle = new THREE.Vector2();
 
 camera.position.z = 5;
 
@@ -48,28 +51,35 @@ const planeMaterial = new THREE.ShaderMaterial({
   fragmentShader: mobiusZoomFragment,
 });
 
-planeMaterial.uniforms.uPlaneHitCoord = new THREE.Uniform(new THREE.Vector2(0, 0));
+planeMaterial.uniforms.uHit = new THREE.Uniform(new THREE.Vector3(0, 0, 0));
 planeMaterial.uniforms.uTexture = { value: new THREE.TextureLoader().load(earthTexture) }
 planeMaterial.uniforms.uResolution = new THREE.Uniform(new THREE.Vector2(window.innerWidth, window.innerHeight))
 
-const plane = new THREE.Mesh(planeGeometry,planeMaterial);
+// const plane = new THREE.Mesh(planeGeometry,planeMaterial);
 
+const sphere = new THREE.Mesh(sphereGeometry, planeMaterial);
 
-plane.position.x = 0
+const cylinderGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1, 8);
+const cylinder = new THREE.Mesh(cylinderGeometry, material);
 
+scene.add(cylinder);
 scene.add(light);
 scene.add(ambientLight);
-scene.add(plane)
-//scene.add(sphere);
+//scene.add(plane)
+scene.add(sphere);
 
 function render() {
 
   //sphere.rotation.x += 0.01;
-  sphere.rotation.y += 0.01;
+  //sphere.rotation.y += 0.01;
+
+  camera.position.x = 3 * Math.sin(cameraPolarAngle.x) // * Math.cos(cameraPolarAngle.x);
+  camera.position.z = 3 * Math.cos(cameraPolarAngle.x);
+
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+
   //light.position.x = 2 * Math.sin(clock.getElapsedTime());
   //light.position.z = 2 * Math.cos(clock.getElapsedTime());
-
-  
 
 	// calculate objects intersecting the picking ray
 	//const intersects = raycaster.intersectObjects( plane );
@@ -86,18 +96,45 @@ function onPointerMove( event ) {
 	pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 }
 
+function onKeyDown(event) {
+  switch (event.key) {
+    case "ArrowLeft":
+      // Left pressed
+      cameraPolarAngle.x = cameraPolarAngle.x + 0.05;
+      //cameraPolarAngle.x = Math.min(2 * Math.PI - 0.01, cameraPolarAngle.x);
+      break;
+    case "ArrowRight":
+      // Right pressed
+      cameraPolarAngle.x = cameraPolarAngle.x - 0.05;
+      //cameraPolarAngle.x = Math.max(0.01, cameraPolarAngle.x);
+      break;
+    case "ArrowUp":
+      // Up pressed
+      cameraPolarAngle.y = cameraPolarAngle.y + 0.05;
+      break;
+    case "ArrowDown":
+      // Down pressed
+      cameraPolarAngle.y = cameraPolarAngle.y - 0.05;
+      break;
+  }
+}
+
 function onClick( event ) {
   raycaster.setFromCamera( pointer, camera );
-  const hits = raycaster.intersectObject( plane );
+  const hits = raycaster.intersectObject( sphere );
 
   if(0 != hits.length) {
     // on plane there will be only one hit
     let hit = hits[0]
     let ray = raycaster.ray.clone()
     let hitPosition = ray.direction.multiplyScalar(hit.distance).add(ray.origin);
-    // plane hit coords are in range [-0.5; 0.5]
-    let hitPlaneLocalCoords = hitPosition.multiply( new THREE.Vector3(1 / 6, 1 / 3, 0));
-    planeMaterial.uniforms.uPlaneHitCoord = new THREE.Uniform(hitPlaneLocalCoords);
+    console.log(hitPosition)
+
+    cylinder.rotation.x = 3.14;
+    cylinder.position.copy(hitPosition.multiplyScalar(2));
+    cylinder.lookAt(new THREE.Vector3(0,0,0))
+
+    planeMaterial.uniforms.uHit = new THREE.Uniform(hitPosition);
   }
 }
 
