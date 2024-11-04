@@ -37,7 +37,7 @@ function init() {
   const material = new THREE.ShaderMaterial({
     uniforms: {
       u_time: { value: 0 },
-      u_zoom: { value: 1 },
+      u_zoom: { value: 0 },
       u_texture: { value: texture },
       u_clickUv: { value: new THREE.Vector2(0.5, 0.5) }, // Start zoom at center by default
     },
@@ -54,14 +54,46 @@ function init() {
       uniform vec2 u_clickUv;
       varying vec2 vUv;
 
+      #define PI 3.1415926535897932384626433832795
+
+      vec3 uvToSphere(vec2 uv) {
+        float theta = uv.y * PI; // v * π
+        float phi = uv.x * 2.0 * PI; // u * 2π
+        
+        float x = sin(theta) * cos(phi);
+        float y = sin(theta) * sin(phi);
+        float z = cos(theta);
+        return vec3(x, y, z);
+      }
+
+      float sphericalDistance(vec2 uv1, vec2 uv2) {
+        vec3 p = uvToSphere(uv1);
+        vec3 q = uvToSphere(uv2);
+        return acos(dot(p, q));
+      }
+
       void main() {
         // Calculate continuous UVs with wrapping
-        vec2 uvOffset = (vUv - u_clickUv) * u_zoom;
-        uvOffset = mod(uvOffset + 1.0, 1.0); // Wrap UVs in [0,1]
-        vec2 wrappedUv = uvOffset + u_clickUv;
+
+        float d = sphericalDistance(vUv, u_clickUv);
+        
+        vec2 click_mid_offset = u_clickUv - 0.5;
+
+        vec2 ray = normalize(u_clickUv - vUv);
+  
+        float a = 0.1;
+
+        float frag_zoom = d/(10.0 + exp(5.0 * d));
+
+        vec2 uv = vUv + normalize(ray) * u_zoom * frag_zoom;
+
+        uv = mod(uv, 1.0); // Wrap UVs in [0,1]
 
         // Sample texture with wrapped UV coordinates
-        vec4 texColor = texture2D(u_texture, vUv);
+        vec4 texColor = texture2D(u_texture, uv);
+
+        texColor = texColor;
+
         gl_FragColor = texColor;
       }`
   });
@@ -101,7 +133,7 @@ function onSphereClick(event) {
     // Update shader uniforms for the click position and zoom
     const material = sphere.material;
     material.uniforms.u_clickUv.value.copy(uv);
-    material.uniforms.u_zoom.value = 0.5; // Zoom in on click
+    material.uniforms.u_zoom.value = 1; // Zoom in on click
 
     // Reset zoom after a short delay
   }
@@ -127,7 +159,7 @@ function onKeyDown(event) {
       break;
     case "Escape":
       const material = sphere.material;
-      material.uniforms.u_zoom.value = 1.0; // Reset zoom
+      material.uniforms.u_zoom.value = 0.0; // Reset zoom
       break;
   }
 }
