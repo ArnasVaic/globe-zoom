@@ -59,7 +59,7 @@ function init() {
       vec3 uvToSphere(vec2 uv) {
         float theta = uv.y * PI; // v * π
         float phi = uv.x * 2.0 * PI; // u * 2π
-        
+
         float x = sin(theta) * cos(phi);
         float y = sin(theta) * sin(phi);
         float z = cos(theta);
@@ -76,12 +76,8 @@ function init() {
         // Calculate continuous UVs with wrapping
 
         float d = sphericalDistance(vUv, u_clickUv);
-        
-        vec2 click_mid_offset = u_clickUv - 0.5;
 
         vec2 ray = normalize(u_clickUv - vUv);
-  
-        float a = 0.1;
 
         float frag_zoom = d/(10.0 + exp(5.0 * d));
 
@@ -91,8 +87,6 @@ function init() {
 
         // Sample texture with wrapped UV coordinates
         vec4 texColor = texture2D(u_texture, uv);
-
-        texColor = texColor;
 
         gl_FragColor = texColor;
       }`
