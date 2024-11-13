@@ -2,8 +2,7 @@ import * as THREE from "three";
 import mobiusZoomVertex from "./public/shaders/mobius-zoom.vert"
 import mobiusZoomFragment from "./public/shaders/mobius-zoom.frag"
 
-import earthTexture from "/textures/earth.jpg"
-import { uniform, uniforms } from "three/webgpu";
+import earthTexture from "/textures/mesh.jpg"
 
 let scene, camera, renderer, sphere;
 const raycaster = new THREE.Raycaster();
@@ -41,61 +40,8 @@ function init() {
       u_texture: { value: texture },
       u_clickUv: { value: new THREE.Vector2(0.5, 0.5) }, // Start zoom at center by default
     },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform float u_zoom;
-      uniform sampler2D u_texture;
-      uniform vec2 u_clickUv;
-      varying vec2 vUv;
-
-      #define PI 3.1415926535897932384626433832795
-
-      vec3 uvToSphere(vec2 uv) {
-        float theta = uv.y * PI; // v * π
-        float phi = uv.x * 2.0 * PI; // u * 2π
-        
-        float x = sin(theta) * cos(phi);
-        float y = sin(theta) * sin(phi);
-        float z = cos(theta);
-        return vec3(x, y, z);
-      }
-
-      float sphericalDistance(vec2 uv1, vec2 uv2) {
-        vec3 p = uvToSphere(uv1);
-        vec3 q = uvToSphere(uv2);
-        return acos(dot(p, q));
-      }
-
-      void main() {
-        // Calculate continuous UVs with wrapping
-
-        float d = sphericalDistance(vUv, u_clickUv);
-        
-        vec2 click_mid_offset = u_clickUv - 0.5;
-
-        vec2 ray = normalize(u_clickUv - vUv);
-  
-        float a = 0.1;
-
-        float frag_zoom = d/(10.0 + exp(5.0 * d));
-
-        vec2 uv = vUv + normalize(ray) * u_zoom * frag_zoom;
-
-        uv = mod(uv, 1.0); // Wrap UVs in [0,1]
-
-        // Sample texture with wrapped UV coordinates
-        vec4 texColor = texture2D(u_texture, uv);
-
-        texColor = texColor;
-
-        gl_FragColor = texColor;
-      }`
+    vertexShader: mobiusZoomVertex,
+    fragmentShader: mobiusZoomFragment
   });
   sphere = new THREE.Mesh(geometry, material);
   scene.add(sphere);
@@ -171,10 +117,6 @@ function animate() {
   sphere.rotation.x = theta;
   sphere.rotation.y = phi;
   renderer.render(scene, camera);
-
-  // camera.position.x = 3 * Math.sin(angle)
-  // camera.position.z = 3 * Math.cos(angle);
-  //camera.lookAt(new THREE.Vector3(0))
 }
 
 init();
