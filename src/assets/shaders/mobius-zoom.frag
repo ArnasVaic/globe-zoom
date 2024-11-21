@@ -31,14 +31,16 @@ mat3 getRotationMatrix(vec3 newPole) {
     return mat3(xAxis, yAxis, zAxis);
 }
 
-vec2 zoom_on_pole(vec2 uv) {
+vec2 zoom(vec2 uv) {
     float zoom_factor = 1.0 + (1.0 + cos(u_time)) / 2.0;
     return vec2(uv.x, pow(uv.y, zoom_factor));
 }
 
 void main() {
 
-    vec2 uv = zoom_on_pole(vUv);
+    vec2 pole = u_new_pole;
+
+    vec2 uv = zoom(vUv);
 
     // Step 1: Convert UV to spherical coordinates
     float phi = 2.0 * PI * uv.x;    // Longitude
@@ -48,7 +50,7 @@ void main() {
     vec3 pos = sphericalToCartesian(phi, theta);
 
     // Step 3: Rotate the position to align the new pole
-    vec3 newPoleCartesian = sphericalToCartesian(u_new_pole.x, u_new_pole.y);
+    vec3 newPoleCartesian = sphericalToCartesian(pole.x, pole.y);
     mat3 rotationMatrix = getRotationMatrix(newPoleCartesian);
     vec3 rotatedPos = rotationMatrix * pos;
 

@@ -6,6 +6,8 @@ import earth from "./assets/textures/earth.jpg"
 let scene, camera, renderer, sphere, clock;
 
 let zoom_factor = 1
+const cursor = new THREE.Vector2(0.5, 0.5);
+const pole = new THREE.Vector2(0, Math.PI/2);
 
 // Initialize the scene
 function init() {
@@ -25,10 +27,11 @@ function init() {
     const texture = new THREE.TextureLoader().load(earth);
     const material = new THREE.ShaderMaterial({
         uniforms: {
+            u_cursor: { value: new THREE.Vector2(0.5, 0.5) },
             u_texture: { value: texture },
             u_time: { value: 0 },
             u_zoom_factor: { value: zoom_factor },
-            u_new_pole: { value: new THREE.Vector2(0.1, 0.000001) }
+            u_new_pole: { value: pole }
         },
         vertexShader: vertexShader,
         fragmentShader: fragmentShader,
@@ -36,11 +39,13 @@ function init() {
     });
 
     sphere = new THREE.Mesh(geometry, material);
+    sphere.rotateX(Math.PI / 2)
     scene.add(sphere);
 
     // Event Listeners
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('mousemove', onMouseMove);
 
     clock.start()
     animate();
@@ -56,32 +61,28 @@ function onKeyDown(event) {
 
     switch (event.key) {
         case 'ArrowRight':
-            sphere.rotation.y -= speed
+            pole.x += speed;
             break;
         case 'ArrowLeft':
-            sphere.rotation.y += speed
+            pole.x -= speed;
             break;
         case 'ArrowUp':
-            sphere.rotation.x += speed
+            pole.y -= speed;
             break;
         case 'ArrowDown':
-            sphere.rotation.x -= speed
+            pole.y += speed;
             break;
         case 'w':
             zoom_factor += speed;
-            zoom_factor = clamp(zoom_factor, 1/4, 4)
-            sphere.material.uniforms.u_zoom_factor.value = zoom_factor
             break;
         case 's':
             zoom_factor -= speed;
-            zoom_factor = clamp(zoom_factor, 1/4, 4)
-            sphere.material.uniforms.u_zoom_factor.value = zoom_factor
             break;
     }
-
-    // Update material uniforms
-    // sphere.material.uniforms.uvOffset.value.set(uvOffsetX, uvOffsetY);
-    // sphere.material.uniforms.stretchFactor.value = stretchFactor;
+    pole.y = clamp(pole.y, 0.0001, Math.PI - 0.0001)
+    sphere.material.uniforms.u_new_pole.value = pole
+    zoom_factor = clamp(zoom_factor, 1/4, 4)
+    sphere.material.uniforms.u_zoom_factor.value = zoom_factor
 }
 
 // Key release event handler
@@ -90,6 +91,18 @@ function onKeyUp(event) {
         // stretchFactor = 1.0;  // Reset the stretch factor
         // sphere.material.uniforms.stretchFactor.value = stretchFactor;
     }
+}
+
+function onMouseMove(event) {
+    // Convert mouse position to normalized device coordinates (-1 to 1)
+    const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+    const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+    // Convert to UV coordinates (0 to 1)
+    cursor.set((mouseX + 1) / 2, (mouseY + 1) / 2);
+  
+    // Update the uniform
+    sphere.material.uniforms.u_cursor.value = cursor;
 }
 
 // Animation loop
