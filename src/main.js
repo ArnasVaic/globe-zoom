@@ -5,9 +5,9 @@ import earth from "./assets/textures/earth.jpg"
 
 let scene, camera, renderer, sphere, clock;
 
-let zoom_factor = 1
-const cursor = new THREE.Vector2(0.5, 0.5);
-const pole = new THREE.Vector2(0, Math.PI/2);
+let zoom = 1
+const pole_0 = new THREE.Vector2(0.0, 0.0001) 
+const pole = pole_0;
 
 // Initialize the scene
 function init() {
@@ -27,11 +27,10 @@ function init() {
     const texture = new THREE.TextureLoader().load(earth);
     const material = new THREE.ShaderMaterial({
         uniforms: {
-            u_cursor: { value: new THREE.Vector2(0.5, 0.5) },
             u_texture: { value: texture },
             u_time: { value: 0 },
-            u_zoom_factor: { value: zoom_factor },
-            u_new_pole: { value: pole }
+            u_zoom: { value: zoom },
+            u_pole: { value: pole }
         },
         vertexShader: vertexShader,
         fragmentShader: fragmentShader,
@@ -39,13 +38,12 @@ function init() {
     });
 
     sphere = new THREE.Mesh(geometry, material);
-    sphere.rotateX(Math.PI / 2)
+    sphere.rotateX(-Math.PI / 2)
     scene.add(sphere);
 
     // Event Listeners
     window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('wheel', onScroll);
 
     clock.start()
     animate();
@@ -55,54 +53,53 @@ function init() {
 function onKeyDown(event) {
     let speed = 0.05
 
-    function clamp(value, min, max) {
-        return Math.min(Math.max(value, min), max);
-    }
-
     switch (event.key) {
         case 'ArrowRight':
-            pole.x += speed;
+            sphere.rotation.z -= speed;
             break;
         case 'ArrowLeft':
-            pole.x -= speed;
+            sphere.rotation.z += speed;
             break;
         case 'ArrowUp':
-            pole.y -= speed;
+            sphere.rotation.x += speed;
             break;
         case 'ArrowDown':
-            pole.y += speed;
+            sphere.rotation.x -= speed;
             break;
         case 'w':
-            zoom_factor += speed;
+            pole.y -= speed;
             break;
         case 's':
-            zoom_factor -= speed;
+            pole.y += speed;
+            break;
+        case 'a':
+            pole.x -= speed;
+            break;
+        case 'd':
+            pole.x += speed;
+            break;
+        case 'Escape':
+            zoom = 1;
+            pole.x = pole_0.x;
+            pole.y = pole_0.y;
+            sphere.rotation.x = -Math.PI / 2;
+            sphere.rotation.z = 0;
             break;
     }
-    pole.y = clamp(pole.y, 0.0001, Math.PI - 0.0001)
-    sphere.material.uniforms.u_new_pole.value = pole
-    zoom_factor = clamp(zoom_factor, 1/4, 4)
-    sphere.material.uniforms.u_zoom_factor.value = zoom_factor
+
+    //pole.y = clamp(pole.y, 0 + 0.0001, Math.PI - 0.0001);
+    sphere.material.uniforms.u_pole.value = pole
 }
 
-// Key release event handler
-function onKeyUp(event) {
-    if (event.key === 'w') {
-        // stretchFactor = 1.0;  // Reset the stretch factor
-        // sphere.material.uniforms.stretchFactor.value = stretchFactor;
-    }
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
 }
 
-function onMouseMove(event) {
-    // Convert mouse position to normalized device coordinates (-1 to 1)
-    const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-    const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-  
-    // Convert to UV coordinates (0 to 1)
-    cursor.set((mouseX + 1) / 2, (mouseY + 1) / 2);
-  
-    // Update the uniform
-    sphere.material.uniforms.u_cursor.value = cursor;
+function onScroll(event) {
+    let speed = 0.001
+    zoom -= speed * event.deltaY;
+    zoom = clamp(zoom, 1, 3)
+    sphere.material.uniforms.u_zoom.value = zoom
 }
 
 // Animation loop

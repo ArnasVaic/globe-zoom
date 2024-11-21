@@ -2,9 +2,9 @@ out vec4 FragColor;
 varying vec2 vUv;
 
 uniform float u_time;
-uniform float u_zoom_factor;
+uniform float u_zoom;
 uniform sampler2D u_texture;
-uniform vec2 u_new_pole;
+uniform vec2 u_pole;
 
 #define PI 3.1415926535
 
@@ -32,13 +32,12 @@ mat3 getRotationMatrix(vec3 newPole) {
 }
 
 vec2 zoom(vec2 uv) {
-    float zoom_factor = 1.0 + (1.0 + cos(u_time)) / 2.0;
-    return vec2(uv.x, pow(uv.y, zoom_factor));
+    return vec2(uv.x, pow(uv.y, u_zoom));
 }
 
 void main() {
 
-    vec2 pole = u_new_pole;
+    vec2 pole = u_pole;
 
     vec2 uv = zoom(vUv);
 
@@ -62,9 +61,26 @@ void main() {
     newUv.x = (rotatedSpherical.x / (2.0 * PI)) + 0.5; // Normalize longitude
     newUv.y = 1.0 - rotatedSpherical.y / PI;           // Normalize latitude
 
-    // float zoom_factor = 1.0 + (1.0 + cos(u_time)) / 2.0;
-    // newUv.y = pow(newUv.y, zoom_factor);
-
-    // Step 6: Sample texture with the new UVs
     FragColor = texture2D(u_texture, newUv);
+
+    // if (distance(zoomedPos, newPoleCartesian) < 0.03)
+    // {
+    //     FragColor = vec4(1, 0.5, 0.5, 1.0);
+    // }
+    // else
+    // {
+        
+    // }
+
+    // vec2 newZoomedRotatedSpherical = vec2(2.0 * PI * newUv.x, PI * (1.0 - newUv.y));
+
+    // vec3 rotatedZoomedPos = sphericalToCartesian(newZoomedRotatedSpherical.x, newZoomedRotatedSpherical.y);
+
+    // vec3 zoomedPos = inverse(rotationMatrix) * rotatedZoomedPos;
+
+    // vec2 zoomedSpherical = cartesianToSpherical(zoomedPos);
+
+    // vec2 zoomedUv;
+    // zoomedUv.x = (zoomedSpherical.x / (2.0 * PI)) + 0.5; // Normalize longitude
+    // zoomedUv.y = 1.0 - zoomedSpherical.y / PI;           // Normalize latitude
 }
