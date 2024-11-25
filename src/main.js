@@ -20,10 +20,10 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     // Camera position
-    camera.position.z = 3;
+    camera.position.z = 2;
 
     // Sphere with Shader Material
-    const geometry = new THREE.SphereGeometry(1, 64, 64);
+    const geometry = new THREE.SphereGeometry(1, 512, 512);
     const texture = new THREE.TextureLoader().load(earth);
     const material = new THREE.ShaderMaterial({
         uniforms: {
@@ -51,7 +51,7 @@ function init() {
 
 // Key press event handler
 function onKeyDown(event) {
-    let speed = 0.05
+    let speed = 0.01
 
     switch (event.key) {
         case 'ArrowRight':

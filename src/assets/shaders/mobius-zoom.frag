@@ -61,26 +61,25 @@ void main() {
     newUv.x = (rotatedSpherical.x / (2.0 * PI)) + 0.5; // Normalize longitude
     newUv.y = 1.0 - rotatedSpherical.y / PI;           // Normalize latitude
 
-    FragColor = texture2D(u_texture, newUv);
+    //FragColor = texture2D(u_texture, newUv);
 
-    // if (distance(zoomedPos, newPoleCartesian) < 0.03)
-    // {
-    //     FragColor = vec4(1, 0.5, 0.5, 1.0);
-    // }
-    // else
-    // {
-        
-    // }
+    vec3 color1 = vec3(.9, .9, 1.0);
+    vec3 color2 = vec3(.1, .1, .2);
+    float scale = 32.0;
+    vec2 scaledUV = newUv * scale;
 
-    // vec2 newZoomedRotatedSpherical = vec2(2.0 * PI * newUv.x, PI * (1.0 - newUv.y));
+    scaledUV.x = 2.0 * scaledUV.x;
 
-    // vec3 rotatedZoomedPos = sphericalToCartesian(newZoomedRotatedSpherical.x, newZoomedRotatedSpherical.y);
+    // Determine the row and column indices
+    int checkerX = int(floor(scaledUV.x));
+    int checkerY = int(floor(scaledUV.y));
 
-    // vec3 zoomedPos = inverse(rotationMatrix) * rotatedZoomedPos;
+    // Compute the checkerboard pattern using the parity of the indices
+    bool isEven = (checkerX + checkerY) % 2 == 0;
 
-    // vec2 zoomedSpherical = cartesianToSpherical(zoomedPos);
+    // Select the color based on the checkerboard pattern
+    vec3 color = isEven ? color1 : color2;
 
-    // vec2 zoomedUv;
-    // zoomedUv.x = (zoomedSpherical.x / (2.0 * PI)) + 0.5; // Normalize longitude
-    // zoomedUv.y = 1.0 - zoomedSpherical.y / PI;           // Normalize latitude
+    // Set the fragment color
+    FragColor = vec4(color, 1.0);
 }
