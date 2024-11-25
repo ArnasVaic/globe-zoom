@@ -61,8 +61,6 @@ void main() {
     newUv.x = (rotatedSpherical.x / (2.0 * PI)) + 0.5; // Normalize longitude
     newUv.y = 1.0 - rotatedSpherical.y / PI;           // Normalize latitude
 
-    //FragColor = texture2D(u_texture, newUv);
-
     vec3 color1 = vec3(.9, .9, 1.0);
     vec3 color2 = vec3(.1, .1, .2);
     float scale = 32.0;
