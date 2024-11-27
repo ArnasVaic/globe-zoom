@@ -90,6 +90,17 @@ Programos rezultatai
 
 ![rezultatai](src/assets/textures/rezultatai.png "Rezultatai")
 
+Jei primityvią funkciją $f_a(v)=v^a$ pakeičiame kiek sudetingesne:
+
+$$f_a(v)=\frac{1}{\pi}\arccos\left(1 + \frac{2\cos(\pi v)-1}{(2^a-1)\cos(\pi v)+1+2^a}\right),\quad |a|\leqslant4$$
+
+gaunem kiek skirtingus rezultatus:
+
+![rezultatai](src/assets/textures/rezultatai-2.png "Rezultatai")
+
+
+![Rezultatai](img/video.gif "Rezultatai")
+
 Programa yra interaktyvi:
 - Sferos polius galima judinti su klaviatūros mygtukais `a`, `w`, `s`, `d`
 - Sferą sukinėti galima su rodyklių mygutkais
